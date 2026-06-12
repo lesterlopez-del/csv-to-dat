@@ -6,7 +6,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
 
   const handleConvert = async () => {
-    if (!file) return alert("Please upload a CSV file first.");
+    if (!file) return alert("Please upload a file first.");
     setLoading(true);
 
     const formData = new FormData();
@@ -24,7 +24,11 @@ export default function Home() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = file.name.replace(".csv", ".dat");
+      
+      // Dynamically strip out the old extension (.csv, .xlsx, or .xls) and swap it for .dat
+      const baseName = file.name.substring(0, file.name.lastIndexOf("."));
+      a.download = `${baseName}.dat`;
+      
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -40,12 +44,12 @@ export default function Home() {
     <main className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-6">
       <div className="max-w-md w-full bg-gray-800 rounded-xl p-8 shadow-lg border border-gray-700">
         <h2 className="text-2xl font-bold mb-2 text-center text-blue-400">BIR CSV to .DAT Testing Portal</h2>
-        <p className="text-gray-400 text-sm text-center mb-6">Upload a CSV to test the isolated compiler logic</p>
+        <p className="text-gray-400 text-sm text-center mb-6">Upload a CSV or Excel file to test the isolated compiler logic</p>
         
         <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
           <input 
             type="file" 
-            accept=".csv" 
+            accept=".csv, .xlsx, .xls" 
             className="hidden" 
             id="csv-upload"
             onChange={(e) => setFile(e.target.files?.[0] || null)} 
@@ -54,7 +58,7 @@ export default function Home() {
             {file ? (
               <span className="text-green-400 font-medium">Selected: {file.name}</span>
             ) : (
-              <span>Click to select or drag a CSV file</span>
+              <span>Click to select or drag a CSV/Excel file</span>
             )}
           </label>
         </div>
