@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BIR QAP (Quarterly Alphalist of Payees) CSV to .DAT Converter Core
 
-## Getting Started
+This standalone workspace handles the core business logic of parsing incoming CSV or Excel (`.xlsx`/`.xls`) tracking lists, validating withholding tax data according to Philippine Bureau of Internal Revenue (BIR) specifications, and compiling them into strictly formatted, machine-readable `.dat` files for **Form 1601-EQ**.
 
-First, run the development server:
+This project functions as a pure, decoupled logic module. **It contains no database layer, no user authentication, and no persistent state storage.** It simply ingests raw data arrays from the client upload window, processes them through strict positional formatting filters, and handles file streaming downloads.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🏗️ Isolated Architecture
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+By decoupling the compilation algorithms from your production platform, you ensure:
+1. **Seamless Portability:** The entire `src/core-tax-logic/` folder can be cleanly copy-pasted directly into your main production Next.js/Supabase SaaS project later.
+2. **Deterministic Computations:** Zero Next.js component rerender interference, enabling rapid runtime updates to string templates when the BIR alters form structures.
+3. **Frictionless Vercel Serverless Deployments:** Uses lightweight stream handlers that bypass Vercel serverless function memory caps and execution limits.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🛠️ Tech Stack & Ecosystem
 
-To learn more about Next.js, take a look at the following resources:
+* **Framework:** Next.js 15 (App Router / Serverless API Route Handlers)
+* **Hosting Environment:** Vercel (Edge & Serverless Compute)
+* **Excel Processor:** `xlsx` (SheetJS) — Instantly flattens compressed spreadsheet matrix cells into normalized text rows in-memory.
+* **Math Library:** `decimal.js` or `currency.js` — Enforces exact scalar decimal calculations, entirely bypassing native JavaScript floating-point rounding errors (`0.1 + 0.2` anomalies) that trigger BIR validation rejection penalties.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📐 Data Lifecycle (How the Pipeline Flows)
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```text
+[User Uploads CSV/.XLSX] 
+         │
+         ▼
+[src/app/api/convert/route.ts] ──► Extracts workbook buffer via SheetJS
+         │
+         ▼
+[src/core-tax-logic/parsers] ──► Sanitizes inputs (pads TINs to 9 digits, branch to 4 digits)
+         │
+         ▼
+[src/core-tax-logic/formatters] ──► Sequentially compiles positional "H", "D", and "C" arrays
+         │
+         ▼
+[NextResponse Stream] ──► Browser downloads clean text file explicitly closed via "\r\n"

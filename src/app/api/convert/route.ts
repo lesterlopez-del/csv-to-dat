@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
+import { compileEQSched1 } from "@/core-tax-logic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,38 +13,26 @@ export async function POST(req: NextRequest) {
 
     let csvText = "";
 
+    // Convert incoming file (CSV or Excel) into uniform CSV text structure
     if (file.name.endsWith(".csv")) {
-      // Direct CSV processing
       csvText = await file.text();
     } else if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
-      // Excel processing via buffer
       const arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
-      
-      // Grab the first sheet name
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      
-      // Convert sheet data to raw CSV string format
-      csvText = XLSX.utils.sheet_to_csv(worksheet);
+      csvText = XLSX.utils.sheet_to_csv(workbook.Sheets[workbook.SheetNames[0]]);
     } else {
-      return NextResponse.json({ error: "Unsupported file format. Please upload CSV or Excel." }, { status: 400 });
+      return NextResponse.json({ error: "Unsupported format" }, { status: 400 });
     }
 
-    // --- YOUR PURE COMPILER LOGIC WILL START HERE ---
-    // Right now, let's look at the parsed rows in your terminal console to verify it works:
-    console.log("--- Extracted Raw Text Data ---");
-    console.log(csvText);
-    console.log("--------------------------------");
+    // Call your isolated compiler engine!
+    // (Using a placeholder company profile TIN: 0009998880000)
+    const compiledDatString = compileEQSched1(csvText, "0009998880000");
 
-    // Placeholder valid BIR string structure for testing downloads
-    const dummyDatString = "H,1,0001234560000,06,30,2026\r\nD,2,111222333000,0,Juan Dela Cruz,500.00\r\n";
-
-    return new NextResponse(dummyDatString, {
+    return new NextResponse(compiledDatString, {
       status: 200,
       headers: {
         "Content-Type": "application/octet-stream",
-        "Content-Disposition": `attachment; filename="${file.name.split('.')[0]}.dat"`,
+        "Content-Disposition": `attachment; filename="${file.name.split(".")[0]}.dat"`,
       },
     });
   } catch (error) {
